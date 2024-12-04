@@ -1,4 +1,5 @@
 <?php
+
 use Twig\Environment;
 use Twig\Error\LoaderError;
 use Twig\Error\RuntimeError;
@@ -10,37 +11,44 @@ use Twig\Sandbox\SecurityNotAllowedFilterError;
 use Twig\Sandbox\SecurityNotAllowedFunctionError;
 use Twig\Source;
 use Twig\Template;
-/* header.twig */
-class __TwigTemplate_e57f3eb26a4660f900e6a967e0ad48dc extends Template
+
+/* page-index.twig */
+class __TwigTemplate_d3db923737030e6d742bca94b6de2ed1 extends Template
 {
     private $source;
     private $macros = [];
+
     public function __construct(Environment $env)
     {
         parent::__construct($env);
+
         $this->source = $this->getSourceContext();
+
         $this->parent = false;
+
         $this->blocks = [
         ];
     }
+
     protected function doDisplay(array $context, array $blocks = [])
     {
         $macros = $this->macros;
         // line 1
-        echo "<header>
-    <p>Заголовок приложения</p>
-</header>";
+        echo "<p>Наше первое приложение!</p>";
     }
+
     public function getTemplateName()
     {
-        return "header.twig";
+        return "page-index.twig";
     }
+
     public function getDebugInfo()
     {
         return array (  37 => 1,);
     }
+
     public function getSourceContext()
     {
-        return new Source("", "header.twig", "/data/mysite.local/src/Domain/Views/header.twig");
+        return new Source("", "page-index.twig", "/data/mysite.local/src/Domain/Views/page-index.twig");
     }
 }

@@ -1,4 +1,5 @@
 <?php
+
 use Twig\Environment;
 use Twig\Error\LoaderError;
 use Twig\Error\RuntimeError;
@@ -10,35 +11,59 @@ use Twig\Sandbox\SecurityNotAllowedFilterError;
 use Twig\Sandbox\SecurityNotAllowedFunctionError;
 use Twig\Source;
 use Twig\Template;
-/* page-index.twig */
-class __TwigTemplate_9bef18728f9d89c8d0fd2c3a17ffc832 extends Template
+
+/* auth-template.twig */
+class __TwigTemplate_3e0801f3ac2e1564bd0a65ffa1ad4d42 extends Template
 {
     private $source;
     private $macros = [];
+
     public function __construct(Environment $env)
     {
         parent::__construct($env);
+
         $this->source = $this->getSourceContext();
+
         $this->parent = false;
+
         $this->blocks = [
         ];
     }
+
     protected function doDisplay(array $context, array $blocks = [])
     {
         $macros = $this->macros;
         // line 1
-        echo "<p>Наше первое приложение!</p>";
+        if ( !($context["user_authorized"] ?? null)) {
+            // line 2
+            echo "    <div class=\"col-md-3 text-end\">
+        <a href=\"/user/login/\" class=\"btn btn-primary\">Войти</a>
+    </div>
+";
+        } else {
+            // line 6
+            echo "    <p>Добро пожаловать на сайт!</p>
+";
+        }
     }
+
     public function getTemplateName()
     {
-        return "page-index.twig";
+        return "auth-template.twig";
     }
+
+    public function isTraitable()
+    {
+        return false;
+    }
+
     public function getDebugInfo()
     {
-        return array (  37 => 1,);
+        return array (  45 => 6,  39 => 2,  37 => 1,);
     }
+
     public function getSourceContext()
     {
-        return new Source("", "page-index.twig", "/data/mysite.local/src/Domain/Views/page-index.twig");
+        return new Source("", "auth-template.twig", "/data/mysite.local/src/Domain/Views/auth-template.twig");
     }
 }

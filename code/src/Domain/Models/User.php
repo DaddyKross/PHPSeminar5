@@ -10,12 +10,14 @@ class User {
 
     private ?int $id_user;
     private ?string $userLogin;
+    private ?string $userPassword;
     private ?string $userName;
     private ?string $userLastName;
     private ?int $userBirthday;
-
     private ?string $userPasswordHash;
     private ?string $userRole;
+
+
     public function __construct(
         int $id = null,
         string $login = null,
@@ -24,25 +26,27 @@ class User {
         int $birthday = null,
         string $passwordHash = null,
         string $role = null){
-            $this->id_user = $id;
-            $this->userLogin = $login;
-            $this->userName = $name;
-            $this->userLastName = $lastName;
-            $this->userBirthday = $birthday;
-            $this->userPasswordHash = $passwordHash;
-            $this->userRole = $role;
+        $this->id_user = $id;
+        $this->userLogin = $login;
+        $this->userName = $name;
+        $this->userLastName = $lastName;
+        $this->userBirthday = $birthday;
+        $this->userPasswordHash = $passwordHash;
+        $this->userRole = $role;
     }
 
     public function setUserId(int $id_user): void {
         $this->id_user = $id_user;
     }
 
-    public function getUserId(): ?int {;
+    public function getUserId(): ?int {
         return $this->id_user;
     }
+
     public function setUserLogin(int $userLogin): void {
         $this->userLogin = $userLogin;
     }
+
     public function getUserLogin(): string {
         return $this->userLogin;
     }
@@ -74,17 +78,47 @@ class User {
     public function setPasswordHash(string $userPasswordHash) : void {
         $this->userPasswordHash = $userPasswordHash;
     }
+
     public function getUserPasswordHash(): string {
         return $this->userPasswordHash;
     }
+
     public function setUserRole(string $userRole) : void {
         $this->userRole = $userRole;
     }
+
     public function getUserRole(): string {
         return $this->userRole;
     }
+
+    public static function isAdmin(?int $id_user): bool {
+        if($id_user >0) {
+            $sql = "SELECT role FROM user_roles WHERE role = 'admin' and id = :id_user";
+            $handler = Application::$storage->get()->prepare($sql);
+            $handler->execute([
+                'id_user' => $id_user
+            ]);
+            $result = $handler->fetchAll();
+
+            if(count($result) > 0) {
+                return true;
+            }
+            else {
+                return false;
+            }
+        }
+        else {
+            return false;
+        }
+    }
+
     public static function getAllUsersFromStorage(): array|false {
         $sql = "SELECT * FROM users";
+
+        if(isset($limit) && $limit > 0) {
+            $sql .= " WHERE id_user > " .(int)$limit;
+        }
+
         $handler = Application::$storage->get()->prepare($sql);
         $handler->execute();
         $result = $handler->fetchAll();
@@ -103,7 +137,41 @@ class User {
         return $users;
     }
 
-    public function saveToStorage(){
+    public static function validateRequestData(): bool{
+        $result = true;
+
+        if(!(
+            isset($_POST['name']) && !empty($_POST['name']) &&
+            isset($_POST['lastname']) && !empty($_POST['lastname']) &&
+            isset($_POST['birthday']) && !empty($_POST['birthday']) &&
+            isset($_POST['login']) && !empty($_POST['login']) &&
+            isset($_POST['password']) && !empty($_POST['password'])
+        )){
+            $result = false;
+        }
+
+        if(!preg_match('/^(\d{2}-\d{2}-\d{4})$/', $_POST['birthday'])){
+            $result =  false;
+        }
+
+        if(!isset($_SESSION['csrf_token']) || $_SESSION['csrf_token'] != $_POST['csrf_token']){
+            $result = false;
+        }
+
+        return $result;
+    }
+
+    public function setParamsFromRequestData(): void {
+
+        $this->userLogin = htmlspecialchars($_POST['login']);
+        $this->userName = htmlspecialchars($_POST['name']);
+        $this->userLastName = htmlspecialchars($_POST['lastname']);
+        $this->setBirthdayFromString($_POST['birthday']);
+        $this->userPassword = Auth::getPasswordHash($_POST['password']);
+    }
+
+    public function saveToStorage(): void
+    {
         $sql = "INSERT INTO users(user_login, user_name, user_lastname, user_birthday_timestamp, user_password_hash, user_role) VALUES (:user_login, :user_name, :user_lastname, :user_birthday, :user_password_hash, :user_role)";
         $handler = Application::$storage->get()->prepare($sql);
         $handler->execute([
@@ -112,19 +180,18 @@ class User {
             'user_lastname' => $this->userLastName,
             'user_birthday' => $this->userBirthday,
             'user_password_hash' => $this->userPasswordHash,
-            'user_role' => $this->userRole
         ]);
     }
 
-    public function updateInStorage(): void{
-        $sql = "UPDATE users SET user_name = :user_name, user_lastname = :user_lastname, user_birthday_timestamp = :user_birthday WHERE id_user = :id";
-        $handler = Application::$storage->get()->prepare($sql);
-        $handler->execute([
+    public function getUserDataAsArray(): array {
+        $userArray = [
             'id' => $this->id_user,
-            'user_name' => $this->userName,
-            'user_lastname' => $this->userLastName,
-            'user_birthday' => $this->userBirthday
-        ]);
+            'username' => $this->userName,
+            'userlastname' => $this->userLastName,
+            'userbirthday' => date('d.m.Y', $this->userBirthday)
+        ];
+
+        return $userArray;
     }
 
     public static function deleteFromStorage(int $user_id) : void {
@@ -132,6 +199,7 @@ class User {
         $handler = Application::$storage->get()->prepare($sql);
         $handler->execute(['id_user' => $user_id]);
     }
+
     public static function exists(int $id): bool{
         $sql = "SELECT count(id_user) as user_count FROM users WHERE id_user = :id_user";
         $handler = Application::$storage->get()->prepare($sql);
@@ -142,35 +210,4 @@ class User {
         return (count($result) > 0 && $result[0]['user_count'] > 0);
     }
 
-    public static function validateRequestData(): bool{
-        return isset($_POST['login']) && !empty($_POST['login'])
-            && preg_match('/^[A-ZА-Яa-zа-я]+$/u', $_POST['login'])
-            && isset($_POST['name']) && !empty($_POST['name'])
-            && preg_match('/^[A-ZА-Я][a-zа-я]+$/u', $_POST['name'])
-            && isset($_POST['lastname']) && !empty($_POST['lastname'])
-            && preg_match('/^[A-ZА-Я][a-zа-я]+$/u', $_POST['lastname'])
-            && isset($_POST['birthday']) && !empty($_POST['birthday'])
-            && preg_match('/^(\d{2}-\d{2}-\d{4})$/', $_POST['birthday'])
-            && isset($_POST['password']) && !empty($_POST['password'])
-            && isset($_SESSION['csrf_token'])
-            && $_SESSION['csrf_token'] == $_POST['csrf_token'];
-    }
-    public function setParamsFromRequestData(): void {
-        if ($_POST['id'] != '') {
-            $this->id_user = htmlspecialchars($_POST['id']);
-        }
-        $this->userLogin = htmlspecialchars($_POST['login']);
-        $this->userName = htmlspecialchars($_POST['name']);
-        $this->userLastName = htmlspecialchars($_POST['lastname']);
-        $this->setBirthdayFromString($_POST['birthday']);
-        $this->userPasswordHash = Auth::getPasswordHash($_POST['password']);
-        $this->userRole = "guest";
-    }
-
-    public function updateUser(int $id, string $name): void{
-        $sql = "UPDATE users SET user_name = :name WHERE id_user = :id";
-
-        $handler = Application::$storage->get()->prepare($sql);
-        $handler->execute(['id' => $id, 'name' => $name]);
-    }
 }
